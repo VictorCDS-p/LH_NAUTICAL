@@ -1,0 +1,63 @@
+LH NAUTICAL - Q6: PREVISÃO DE DEMANDA
+======================================
+
+Produto analisado:
+Bússola de Bordo 702
+
+Modelo:
+Média móvel dos últimos 3 meses
+
+Período de treinamento:
+Até 31/12/2025
+
+Período de teste:
+01/01/2026 a 31/03/2026
+
+
+RESULTADOS
+----------
+
+Mês       Real    Previsão
+01/2026    79      38,67
+02/2026    68      53,67
+03/2026    60      56,33
+
+
+MÉTRICAS
+--------
+
+MAE: 19,44 unidades
+
+Previsão total no 1º trimestre: 149 unidades
+Vendas reais no 1º trimestre: 207 unidades
+
+Diferença entre previsão e realizado:
+58 unidades abaixo do realizado.
+
+
+ANÁLISE
+-------
+
+A média móvel de 3 meses apresentou uma previsão total de
+149 unidades para o primeiro trimestre de 2026, enquanto o
+volume realizado foi de 207 unidades.
+
+O modelo subestimou a demanda em 58 unidades. O principal
+impacto ocorreu em janeiro de 2026, quando foram vendidas
+79 unidades contra uma previsão de 38,67 unidades.
+
+Nos meses seguintes, a previsão se aproximou do realizado,
+com 53,67 unidades previstas contra 68 realizadas em fevereiro
+e 56,33 previstas contra 60 realizadas em março.
+
+O MAE de 19,44 unidades indica que, em média, a previsão
+apresentou um erro absoluto de aproximadamente 19 unidades
+por mês.
+
+Conclusão:
+A média móvel de 3 meses funciona como um baseline simples
+para previsão de demanda, mas apresentou dificuldade para
+capturar aumentos repentinos nas vendas. Para utilização
+operacional, seria interessante comparar esse baseline com
+outros modelos de previsão e avaliar também sazonalidade e
+tendências históricas.

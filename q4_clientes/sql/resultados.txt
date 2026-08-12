@@ -1,0 +1,67 @@
+Q4 - ANÁLISE DE CATEGORIAS DOS TOP 10 CLIENTES
+===============================================
+
+Critério de seleção dos clientes:
+- Mínimo de 13 categorias distintas compradas.
+- Maior ticket médio como critério principal.
+- customer_id em ordem crescente como critério de desempate.
+- Foram selecionados os 10 primeiros clientes após a aplicação
+  desses critérios.
+
+
+METODOLOGIA
+-----------
+
+Primeiramente, foram calculadas as métricas de cada cliente
+diretamente a partir da tabela orders:
+
+- Faturamento total: SUM(total)
+- Frequência de compras: COUNT de pedidos
+- Ticket médio: faturamento total / frequência de compras
+
+Em seguida, para calcular a diversidade de categorias, foi
+percorrida a relação:
+
+orders → order_items → product_variants → products → categories
+
+A quantidade de categorias distintas compradas por cliente foi
+calculada utilizando COUNT(DISTINCT category_id).
+
+Após identificar os clientes que compraram em pelo menos 13
+categorias distintas, eles foram ordenados pelo maior ticket
+médio, utilizando customer_id como critério de desempate.
+
+Por fim, considerando somente os 10 clientes selecionados, foi
+calculada a quantidade total de unidades compradas por categoria,
+somando o campo quantity dos respectivos order_items.
+
+
+RESULTADO
+---------
+
+Categoria                  Quantidade
+-------------------------------------
+Hélices                         492
+Coletes Salva-Vidas             393
+Eletrônica Náutica              392
+Âncoras                         387
+Iluminação                      333
+Manutenção                      330
+SEGURANÇA                       325
+Velas                           313
+Pintura Marítima                307
+Acessórios de Convés            305
+Motores                         279
+Pesca                           278
+Equipamentos                    255
+Cabos                           254
+
+
+CONCLUSÃO
+----------
+
+Hélices (category_id 8) foi a categoria com maior quantidade de
+unidades compradas pelos Top 10 clientes, totalizando 492 unidades.
+
+Entre as cinco categorias com maior volume estão Hélices, Coletes
+Salva-Vidas, Eletrônica Náutica, Âncoras e Iluminação.

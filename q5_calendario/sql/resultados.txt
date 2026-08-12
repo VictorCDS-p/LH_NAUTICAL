@@ -1,0 +1,64 @@
+Q5 - MÉDIA DE VENDAS POR DIA DA SEMANA
+======================================
+
+ESCOPO
+------
+
+A análise considera exclusivamente as vendas realizadas pelas
+lojas físicas, identificadas por:
+
+channel = 'pos'
+
+
+METODOLOGIA
+-----------
+
+Foi utilizada uma dimensão de calendário porque a tabela orders
+contém apenas as datas em que houve registros de vendas.
+
+Caso o agrupamento fosse realizado diretamente sobre orders,
+datas sem nenhuma venda não apareceriam no cálculo. Isso poderia
+superestimar a média de determinados dias da semana, pois somente
+os dias com vendas seriam considerados.
+
+Para evitar essa distorção, foi criado um calendário contendo
+todas as datas entre a primeira e a última venda das lojas físicas.
+
+As vendas foram inicialmente agregadas por data. Em seguida,
+essa informação foi relacionada ao calendário utilizando LEFT
+JOIN.
+
+Quando não existia venda em determinada data, o valor foi
+considerado como zero por meio de COALESCE.
+
+Dessa forma, todos os dias do período participam do cálculo,
+inclusive aqueles em que não houve nenhuma venda.
+
+
+RESULTADO
+---------
+
+Dia da semana       Média de vendas
+------------------------------------
+Segunda-feira       R$ 158.241,15
+Terça-feira         R$ 166.118,83
+Quarta-feira        R$ 173.605,44
+Quinta-feira        R$ 157.154,32
+Sexta-feira         R$ 170.193,68
+Sábado              R$ 164.858,27
+Domingo             R$ 157.616,13
+
+
+CONCLUSÃO
+----------
+
+Quarta-feira apresentou a maior média de vendas, com
+aproximadamente R$ 173.605,44 por dia.
+
+Quinta-feira apresentou a menor média, com aproximadamente
+R$ 157.154,32 por dia.
+
+A utilização do calendário garante que dias sem vendas também
+sejam considerados como zero no cálculo, evitando que a média
+seja artificialmente elevada pela ausência desses dias na tabela
+de vendas.
