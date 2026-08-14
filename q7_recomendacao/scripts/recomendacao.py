@@ -8,36 +8,90 @@ from dotenv import load_dotenv
 
 
 # ============================================================
+# LH NAUTICAL - QUESTÃO 7
+# SISTEMA DE RECOMENDAÇÃO
+# ============================================================
+
+
+# ============================================================
 # CONFIGURAÇÃO
 # ============================================================
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 ENV_FILE = ROOT / ".env"
 
-load_dotenv(ENV_FILE)
+REFERENCE_PRODUCT = "Motor de Popa 1949"
+TOP_N = 5
+
+
+# ============================================================
+# CONFIGURAÇÃO DO BANCO DE DADOS
+# ============================================================
+
+load_dotenv(
+    ENV_FILE,
+    override=True
+)
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
     "port": os.getenv("DB_PORT"),
     "database": os.getenv("DB_NAME"),
     "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD")
+    "password": os.getenv("DB_PASSWORD"),
 }
-
-REFERENCE_PRODUCT = "Motor de Popa 1949"
-TOP_N = 5
 
 
 # ============================================================
-# EXTRAÇÃO
+# VALIDAÇÃO DA CONFIGURAÇÃO
+# ============================================================
+
+def validate_config():
+    """
+    Verifica se todas as variáveis necessárias para conexão
+    com o PostgreSQL estão configuradas.
+    """
+
+    missing = [
+        key
+        for key, value in DB_CONFIG.items()
+        if not value
+    ]
+
+    if missing:
+        raise EnvironmentError(
+            "Variáveis ausentes no .env: "
+            + ", ".join(missing)
+        )
+
+
+# ============================================================
+# EXTRAÇÃO DOS DADOS
 # ============================================================
 
 def load_interactions(connection):
+    """
+    Extrai as interações únicas entre clientes e produtos.
+
+    Cadeia de relacionamento:
+
+    orders
+        ↓
+    order_items
+        ↓
+    product_variants
+        ↓
+    products
+
+    Cada combinação cliente-produto aparece apenas uma vez,
+    independentemente da quantidade ou frequência da compra.
+    """
 
     query = """
         SELECT DISTINCT
             o.customer_id AS id_cliente,
             p.id AS id_produto
+
         FROM orders AS o
 
         INNER JOIN order_items AS oi
@@ -50,7 +104,10 @@ def load_interactions(connection):
             ON p.id = pv.product_id
 
         WHERE o.customer_id IS NOT NULL
-        ORDER BY o.customer_id, p.id;
+
+        ORDER BY
+            o.customer_id,
+            p.id;
     """
 
     return pd.read_sql_query(
@@ -60,12 +117,18 @@ def load_interactions(connection):
 
 
 def load_products(connection):
+    """
+    Carrega o identificador e o nome dos produtos para
+    posteriormente traduzir o ranking de IDs para nomes.
+    """
 
     query = """
         SELECT
             id,
             name
+
         FROM products
+
         ORDER BY id;
     """
 
@@ -80,13 +143,29 @@ def load_products(connection):
 # ============================================================
 
 def build_matrix(interactions):
+    """
+    Constrói a matriz binária Usuário × Produto.
+
+    Linhas:
+        id_cliente
+
+    Colunas:
+        id_produto
+
+    Valores:
+        1 = cliente comprou o produto
+        0 = cliente não comprou o produto
+
+    A quantidade comprada é desconsiderada.
+    """
 
     matrix = pd.crosstab(
         interactions["id_cliente"],
         interactions["id_produto"]
     )
 
-    # Presença/ausência.
+    # Garante representação binária:
+    # qualquer ocorrência de compra = 1.
     matrix = (
         matrix
         .clip(upper=1)
@@ -100,33 +179,52 @@ def build_matrix(interactions):
 # SIMILARIDADE DE COSSENO
 # ============================================================
 
-def cosine_similarity(matrix):
+def calculate_cosine_similarity(matrix):
+    """
+    Calcula a Similaridade de Cosseno entre os produtos.
 
-    # Cada coluna representa um produto.
-    # Portanto, calculamos a similaridade entre as colunas.
+    A matriz original possui:
+
+        linhas  = clientes
+        colunas = produtos
+
+    Para comparar produtos, as colunas são transformadas
+    em vetores, sendo cada vetor representado pelo conjunto
+    de clientes que compraram aquele produto.
+    """
 
     product_matrix = matrix.T.to_numpy(
         dtype=float
     )
 
+    # Norma de cada vetor de produto.
     norms = np.linalg.norm(
         product_matrix,
         axis=1
     )
 
-    similarity = (
-        product_matrix @ product_matrix.T
+    # Produto escalar entre todos os pares de produtos.
+    dot_product = (
+        product_matrix
+        @ product_matrix.T
     )
 
+    # Produto das normas de cada par.
     denominator = np.outer(
         norms,
         norms
     )
 
+    # Similaridade de cosseno:
+    #
+    # cos(A,B) =
+    # (A . B) / (||A|| * ||B||)
+    #
+    # Produtos sem interações recebem similaridade 0.
     similarity = np.divide(
-        similarity,
+        dot_product,
         denominator,
-        out=np.zeros_like(similarity),
+        out=np.zeros_like(dot_product),
         where=denominator != 0
     )
 
@@ -134,7 +232,7 @@ def cosine_similarity(matrix):
 
 
 # ============================================================
-# RANKING
+# RANKING DOS PRODUTOS
 # ============================================================
 
 def generate_ranking(
@@ -142,8 +240,16 @@ def generate_ranking(
     similarity,
     products
 ):
+    """
+    Gera o ranking dos produtos mais similares ao produto
+    de referência.
+    """
 
     product_ids = matrix.columns.tolist()
+
+    # --------------------------------------------------------
+    # Identificação do produto de referência
+    # --------------------------------------------------------
 
     reference = products[
         products["name"] == REFERENCE_PRODUCT
@@ -160,8 +266,13 @@ def generate_ranking(
 
     if reference_id not in product_ids:
         raise ValueError(
-            f'Produto "{REFERENCE_PRODUCT}" não possui interações.'
+            f'Produto "{REFERENCE_PRODUCT}" '
+            "não possui interações de compra."
         )
+
+    # --------------------------------------------------------
+    # Localização do produto na matriz de similaridade
+    # --------------------------------------------------------
 
     reference_index = product_ids.index(
         reference_id
@@ -171,16 +282,21 @@ def generate_ranking(
         reference_index
     ]
 
+    # --------------------------------------------------------
+    # Criação do ranking
+    # --------------------------------------------------------
+
     ranking = pd.DataFrame({
         "id_produto": product_ids,
         "similaridade": scores
     })
 
-    # Remove o próprio produto.
+    # Remove o próprio produto do ranking.
     ranking = ranking[
         ranking["id_produto"] != reference_id
     ]
 
+    # Adiciona o nome dos produtos.
     ranking = ranking.merge(
         products,
         left_on="id_produto",
@@ -188,6 +304,7 @@ def generate_ranking(
         how="left"
     )
 
+    # Ordena pela maior similaridade.
     ranking = (
         ranking
         .sort_values(
@@ -207,13 +324,14 @@ def generate_ranking(
 
 
 # ============================================================
-# MAIN
+# EXECUÇÃO PRINCIPAL
 # ============================================================
 
 def main():
 
     print("=" * 60)
-    print("LH NAUTICAL - SISTEMA DE RECOMENDAÇÃO")
+    print("LH NAUTICAL - QUESTÃO 7")
+    print("SISTEMA DE RECOMENDAÇÃO")
     print("=" * 60)
 
     print(
@@ -221,18 +339,30 @@ def main():
         f"{REFERENCE_PRODUCT}"
     )
 
+    # --------------------------------------------------------
+    # Validação
+    # --------------------------------------------------------
+
+    validate_config()
+
+    # --------------------------------------------------------
+    # Conexão
+    # --------------------------------------------------------
+
+    print("\nConectando ao PostgreSQL...")
+
     connection = psycopg2.connect(
         **DB_CONFIG
     )
 
+    print(
+        "Conexão realizada com sucesso."
+    )
+
     try:
 
-        print(
-            "\nConexão realizada com sucesso."
-        )
-
         # ----------------------------------------------------
-        # Interações
+        # Extração das interações
         # ----------------------------------------------------
 
         interactions = load_interactions(
@@ -240,12 +370,12 @@ def main():
         )
 
         print(
-            f"Interações únicas: "
+            f"\nInterações únicas: "
             f"{len(interactions):,}".replace(",", ".")
         )
 
         # ----------------------------------------------------
-        # Produtos
+        # Catálogo de produtos
         # ----------------------------------------------------
 
         products = load_products(
@@ -253,11 +383,12 @@ def main():
         )
 
         print(
-            f"Produtos: {len(products)}"
+            f"Produtos cadastrados: "
+            f"{len(products)}"
         )
 
         # ----------------------------------------------------
-        # Matriz
+        # Matriz Usuário × Produto
         # ----------------------------------------------------
 
         matrix = build_matrix(
@@ -265,16 +396,22 @@ def main():
         )
 
         print(
-            f"Matriz usuário × produto: "
-            f"{matrix.shape[0]} clientes × "
-            f"{matrix.shape[1]} produtos"
+            "\nMatriz Usuário × Produto:"
+        )
+
+        print(
+            f"    Clientes: {matrix.shape[0]}"
+        )
+
+        print(
+            f"    Produtos: {matrix.shape[1]}"
         )
 
         # ----------------------------------------------------
         # Similaridade
         # ----------------------------------------------------
 
-        similarity = cosine_similarity(
+        similarity = calculate_cosine_similarity(
             matrix
         )
 
@@ -287,6 +424,10 @@ def main():
             similarity,
             products
         )
+
+        # ----------------------------------------------------
+        # Resultado
+        # ----------------------------------------------------
 
         print("\n" + "=" * 60)
         print("TOP 5 PRODUTOS MAIS SIMILARES")
@@ -328,6 +469,10 @@ def main():
             "\nConexão com PostgreSQL encerrada."
         )
 
+
+# ============================================================
+# EXECUÇÃO
+# ============================================================
 
 if __name__ == "__main__":
     main()

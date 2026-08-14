@@ -1,128 +1,78 @@
-============================================================
-DESAFIO LIGHTHOUSE - DADOS E IA
-QUESTÃO 1 - EDA
-============================================================
+# DESAFIO LIGHTHOUSE — DADOS E IA
 
+## QUESTÃO 1 — EDA
 
-QUESTÃO 1.1 - SQL
-------------------------------------------------------------
+---
 
-Arquivo enviado separadamente:
+## 1.1 — SQL
 
-q1_1_eda.sql
+**Arquivo enviado separadamente:** `q1_1_eda.sql`
 
-O código SQL realiza:
-- Contagem total de linhas;
-- Identificação da data mínima de created_at;
-- Identificação da data máxima de created_at;
-- Identificação do valor mínimo de total;
-- Identificação do valor máximo de total;
-- Cálculo do valor médio de total.
+O código SQL foi desenvolvido para realizar os principais indicadores solicitados na análise exploratória da tabela `orders`:
 
+* quantidade total de linhas;
+* data mínima de `created_at`;
+* data máxima de `created_at`;
+* valor mínimo de `total`;
+* valor máximo de `total`;
+* valor médio de `total`.
 
-RESULTADOS DA EDA
-------------------------------------------------------------
+A consulta utiliza exclusivamente a tabela `orders`, sem aplicação de limpeza ou tratamento dos dados.
 
-Quantidade total de linhas: 48.998
+### Resultados da EDA
 
-Quantidade total de colunas: 13
+| Indicador                   |           Resultado |
+| --------------------------- | ------------------: |
+| Quantidade total de linhas  |              48.998 |
+| Quantidade total de colunas |                  13 |
+| Data mínima de `created_at` | 2020-01-01 01:19:28 |
+| Data máxima de `created_at` | 2026-12-31 23:43:09 |
+| Valor mínimo de `total`     |            R$ 32,62 |
+| Valor máximo de `total`     |       R$ 127.262,02 |
+| Valor médio de `total`      |        R$ 28.704,99 |
 
-Data mínima de created_at:
-2020-01-01 01:19:28
+### Observações de qualidade
 
-Data máxima de created_at:
-2026-12-31 23:43:09
+Na inspeção dos dados brutos, foram observados:
 
-Valor mínimo de total:
-R$ 32,62
+* **0 valores nulos/vazios** em `created_at`;
+* **0 valores nulos/vazios** em `total`;
+* **4.297 registros** com `created_at` posterior à data de execução da análise.
 
-Valor máximo de total:
-R$ 127.262,02
+A quantidade de colunas foi obtida a partir do cabeçalho do arquivo CSV, enquanto os demais indicadores solicitados foram calculados diretamente no PostgreSQL.
 
-Valor médio de total:
-R$ 28.704,99
+---
 
-Valores nulos/vazios em created_at:
-0
+## 1.2 — Validação
 
-Valores nulos/vazios em total:
-0
+**Qual é o valor médio registrado na coluna `total`?**
 
-Registros com created_at posterior à data atual da análise:
-4.297
+O valor médio registrado na coluna `total` é de **R$ 28.704,99**.
 
+---
 
-============================================================
-QUESTÃO 1.2 - VALIDAÇÃO
-============================================================
+## 1.3 — Interpretação
 
-Qual é o valor médio registrado na coluna "total"?
+A tabela `orders` apresenta uma estrutura adequada como ponto de partida para a exploração dos dados, contendo **48.998 registros e 13 colunas**. Na inspeção realizada, não foram identificados valores nulos ou vazios nas colunas `created_at` e `total`, o que representa um aspecto positivo para análises posteriores.
 
-Resposta:
+A coluna `total` apresenta uma variação significativa, com valores entre **R$ 32,62 e R$ 127.262,02**, enquanto a média registrada é de **R$ 28.704,99**. Essa amplitude indica a presença de possíveis valores atípicos que devem ser investigados antes de análises que possam ser sensíveis a outliers. Nesta etapa, esses valores foram apenas observados, sem remoção ou tratamento, conforme as premissas do desafio.
 
-O valor médio registrado na coluna "total" é de R$ 28.704,99.
+Também foram identificados **4.297 registros com `created_at` posterior à data de execução da análise**. Essa característica não foi alterada ou descartada nesta etapa, pois a análise exploratória deve preservar os dados brutos. Entretanto, para análises que representem a situação da operação em uma determinada data de referência, seria necessário estabelecer uma data de corte e validar esses registros.
 
+Dessa forma, a tabela `orders` pode ser utilizada como ponto de partida para exploração, mas **não deve ser considerada totalmente pronta para todas as análises de negócio sem validações adicionais**. Embora não tenham sido identificados valores ausentes nas principais colunas analisadas, os possíveis valores atípicos em `total` e a necessidade de validação do período temporal devem ser considerados nas etapas seguintes.
 
-============================================================
-QUESTÃO 1.3 - INTERPRETAÇÃO
-============================================================
+Além disso, a tabela `orders` isoladamente não contém todas as informações necessárias para análises mais completas do negócio. Para análises de clientes, produtos, categorias e itens vendidos, será necessário relacioná-la às demais tabelas do modelo, utilizando as respectivas chaves de relacionamento.
 
-Com base na análise exploratória realizada, escreva um breve
-diagnóstico sobre a confiabilidade da tabela orders para análises
-futuras. Comente sobre possíveis outliers em "total", qualidade dos
-dados e necessidade de tratamento ou relacionamento com demais tabelas.
+---
 
-Resposta:
+## Escopo e metodologia
 
-A tabela orders apresenta uma estrutura inicialmente adequada para
-uma análise exploratória, com 48.998 registros e 13 colunas. Não foram
-identificados valores nulos ou vazios nas colunas created_at e total,
-o que representa um ponto positivo para as análises posteriores.
+* A análise foi realizada exclusivamente sobre a tabela `orders`.
+* Não foi realizada limpeza, correção ou tratamento dos dados.
+* Os possíveis valores atípicos foram apenas identificados e não removidos.
+* Os valores nulos/vazios foram apenas observados.
+* Os registros com datas posteriores à data de execução foram identificados, mas não alterados.
+* O SQL foi executado no PostgreSQL para obtenção dos indicadores solicitados.
+* O script Python foi utilizado como validação complementar dos resultados e para as verificações adicionais de qualidade e consistência temporal.
 
-Os valores da coluna total apresentam uma variação considerável,
-entre R$ 32,62 e R$ 127.262,02, enquanto o valor médio é de
-R$ 28.704,99. Essa amplitude indica a existência de possíveis valores
-atípicos que merecem investigação antes de análises que possam ser
-sensíveis a outliers. Nesta etapa, entretanto, esses valores não foram
-removidos ou tratados, conforme as premissas do desafio.
-
-Também foi observado que a coluna created_at possui registros até
-31/12/2026. Como o desafio informa que os dados operacionais abrangem
-o período de 2020 a 2026, essa extensão temporal não deve ser
-automaticamente considerada um erro. Entretanto, caso os dados sejam
-utilizados para representar a situação da operação em uma data de
-referência específica, será necessário definir um corte temporal
-adequado e validar a origem desses registros.
-
-Dessa forma, a tabela orders apresenta uma boa base inicial para
-exploração, mas não deve ser considerada totalmente pronta para todas
-as análises de negócio sem uma etapa posterior de validação e
-tratamento. Embora não tenham sido encontrados valores nulos nas
-principais colunas analisadas, os possíveis valores atípicos em total
-e a necessidade de validar o período temporal devem ser considerados.
-
-Além disso, para análises mais completas do negócio, a tabela orders
-deverá ser relacionada às demais tabelas do modelo, como customers,
-order_items, product_variants e products. Esses relacionamentos
-permitirão análises mais detalhadas de clientes, produtos e categorias.
-Essa integração, entretanto, não é necessária para a EDA desta questão,
-que deve utilizar exclusivamente a tabela orders.
-
-
-============================================================
-OBSERVAÇÕES
-============================================================
-
-- A análise foi realizada sem limpeza ou tratamento dos dados,
-  conforme as premissas da Questão 1.
-- Os possíveis valores atípicos foram apenas identificados e não
-  removidos.
-- A extensão temporal até 31/12/2026 foi observada, mas não foi
-  considerada automaticamente uma inconsistência, pois o desafio
-  informa que os dados abrangem o período de 2020 a 2026.
-- O SQL foi executado no PostgreSQL e os resultados foram conferidos
-  com o script Python utilizado na EDA.
-
-============================================================
-FIM DA QUESTÃO 1
-============================================================
+**Conclusão:** a tabela `orders` apresenta condições adequadas para uma análise exploratória inicial, mas requer validações adicionais antes de ser utilizada isoladamente para decisões de negócio.

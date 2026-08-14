@@ -7,15 +7,43 @@ from dotenv import load_dotenv
 
 
 # ============================================================
+# DESAFIO LIGHTHOUSE - DADOS E IA
+# QUESTÃO 3 - CARREGAMENTO
+# ============================================================
+#
+# Objetivo:
+# Carregar todos os arquivos CSV da pasta de dados brutos
+# nas respectivas tabelas do PostgreSQL, utilizando o schema
+# criado na Questão 2.
+#
+# Premissas:
+# - Todos os CSVs devem ser carregados;
+# - O banco de destino é PostgreSQL;
+# - O carregamento deve preservar os dados brutos;
+# - Não são realizados tratamentos ou correções nos dados.
+#
+# Bibliotecas:
+# - csv e os: biblioteca padrão do Python;
+# - pathlib: manipulação de caminhos;
+# - psycopg2: conexão e carregamento no PostgreSQL;
+# - python-dotenv: leitura das variáveis de ambiente.
+# ============================================================
+
+
+# ============================================================
 # CONFIGURAÇÃO
 # ============================================================
 
+# Raiz do projeto
 ROOT = Path(__file__).resolve().parent.parent.parent
 
+# Diretório contendo os arquivos CSV
 CSV_DIR = ROOT / "data" / "raw"
+
+# Arquivo contendo as credenciais do banco
 ENV_FILE = ROOT / ".env"
 
-# Schema onde as tabelas foram criadas no PostgreSQL
+# Schema PostgreSQL utilizado na Questão 2
 DB_SCHEMA = "public"
 
 
@@ -24,6 +52,7 @@ DB_SCHEMA = "public"
 # ============================================================
 
 load_dotenv(ENV_FILE)
+
 
 # ============================================================
 # CONFIGURAÇÃO DO POSTGRESQL
@@ -43,6 +72,10 @@ DB_CONFIG = {
 # ============================================================
 
 def validate_config():
+    """
+    Verifica se todas as variáveis necessárias para conexão
+    com o PostgreSQL foram configuradas.
+    """
 
     required_variables = [
         "DB_HOST",
@@ -52,58 +85,74 @@ def validate_config():
         "DB_PASSWORD",
     ]
 
-    missing = [
+    missing_variables = [
         variable
         for variable in required_variables
         if not os.getenv(variable)
     ]
 
-    if missing:
+    if missing_variables:
         raise EnvironmentError(
             "Variáveis de ambiente não configuradas: "
-            + ", ".join(missing)
+            + ", ".join(missing_variables)
         )
 
 
 # ============================================================
-# LEITURA DO CABEÇALHO DO CSV
+# LEITURA DAS COLUNAS DO CSV
 # ============================================================
 
 def get_columns(csv_file):
+    """
+    Retorna os nomes das colunas presentes no cabeçalho
+    do arquivo CSV.
+    """
 
     with open(
         csv_file,
         "r",
         encoding="utf-8-sig",
-        newline=""
+        newline="",
     ) as file:
 
         reader = csv.reader(file)
+        columns = next(reader, None)
 
-        columns = next(reader)
+    if not columns:
+        raise ValueError(
+            f"O arquivo CSV não possui cabeçalho: "
+            f"{csv_file.name}"
+        )
 
     return columns
 
 
 # ============================================================
-# CONTAGEM DE LINHAS
+# CONTAGEM DE LINHAS DO CSV
 # ============================================================
 
 def count_csv_rows(csv_file):
+    """
+    Conta a quantidade de registros do CSV, desconsiderando
+    a linha de cabeçalho.
+    """
 
     with open(
         csv_file,
         "r",
         encoding="utf-8-sig",
-        newline=""
+        newline="",
     ) as file:
 
         reader = csv.reader(file)
 
-        # Ignora o cabeçalho
+        # Ignora o cabeçalho.
         next(reader, None)
 
-        return sum(1 for _ in reader)
+        return sum(
+            1
+            for _ in reader
+        )
 
 
 # ============================================================
@@ -111,6 +160,10 @@ def count_csv_rows(csv_file):
 # ============================================================
 
 def table_exists(connection, table_name):
+    """
+    Verifica se a tabela correspondente ao CSV existe
+    no schema PostgreSQL definido.
+    """
 
     query = """
         SELECT EXISTS (
@@ -125,17 +178,23 @@ def table_exists(connection, table_name):
 
         cursor.execute(
             query,
-            (DB_SCHEMA, table_name)
+            (
+                DB_SCHEMA,
+                table_name,
+            ),
         )
 
         return cursor.fetchone()[0]
 
 
 # ============================================================
-# VERIFICAÇÃO DA CONEXÃO
+# INFORMAÇÕES DA CONEXÃO
 # ============================================================
 
 def show_database_info(connection):
+    """
+    Exibe informações básicas da conexão estabelecida.
+    """
 
     query = """
         SELECT
@@ -151,8 +210,8 @@ def show_database_info(connection):
         database, user, schema = cursor.fetchone()
 
     print("\nInformações da conexão:")
-    print(f"    Banco:  {database}")
-    print(f"    Usuário: {user}")
+    print(f"    Banco:       {database}")
+    print(f"    Usuário:     {user}")
     print(f"    Schema atual: {schema}")
     print()
 
@@ -162,16 +221,23 @@ def show_database_info(connection):
 # ============================================================
 
 def load_table(connection, csv_file):
+    """
+    Carrega um arquivo CSV na tabela PostgreSQL correspondente.
+
+    O nome da tabela é obtido a partir do nome do arquivo.
+    O carregamento é realizado por COPY, preservando os dados
+    sem limpeza ou transformação.
+    """
 
     table_name = csv_file.stem
 
     # --------------------------------------------------------
-    # Verifica se a tabela existe
+    # Verificação da existência da tabela
     # --------------------------------------------------------
 
     if not table_exists(
         connection,
-        table_name
+        table_name,
     ):
         raise RuntimeError(
             f'A tabela "{DB_SCHEMA}"."{table_name}" '
@@ -179,7 +245,7 @@ def load_table(connection, csv_file):
         )
 
     # --------------------------------------------------------
-    # Obtém as colunas do CSV
+    # Identificação das colunas
     # --------------------------------------------------------
 
     columns = get_columns(csv_file)
@@ -190,7 +256,7 @@ def load_table(connection, csv_file):
     )
 
     # --------------------------------------------------------
-    # Define schema + tabela
+    # Identificação da tabela de destino
     # --------------------------------------------------------
 
     table_sql = (
@@ -198,7 +264,7 @@ def load_table(connection, csv_file):
     )
 
     # --------------------------------------------------------
-    # COPY
+    # Comando COPY
     # --------------------------------------------------------
 
     copy_sql = f"""
@@ -211,23 +277,27 @@ def load_table(connection, csv_file):
         )
     """
 
+    # --------------------------------------------------------
+    # Execução do carregamento
+    # --------------------------------------------------------
+
     with connection.cursor() as cursor:
 
         with open(
             csv_file,
             "r",
             encoding="utf-8-sig",
-            newline=""
+            newline="",
         ) as file:
 
             cursor.copy_expert(
                 copy_sql,
-                file
+                file,
             )
 
 
 # ============================================================
-# MAIN
+# PROCESSAMENTO PRINCIPAL
 # ============================================================
 
 def main():
@@ -237,7 +307,7 @@ def main():
     print("=" * 60)
 
     # --------------------------------------------------------
-    # Validação das variáveis de ambiente
+    # Validação da configuração
     # --------------------------------------------------------
 
     validate_config()
@@ -245,14 +315,14 @@ def main():
     print("\nDiretório dos CSVs:")
     print(CSV_DIR)
 
-    print("\nArquivo .env:")
+    print("\nArquivo de configuração:")
     print(ENV_FILE)
 
     print("\nSchema PostgreSQL:")
     print(DB_SCHEMA)
 
     # --------------------------------------------------------
-    # Localização dos CSVs
+    # Localização dos arquivos CSV
     # --------------------------------------------------------
 
     csv_files = sorted(
@@ -261,15 +331,17 @@ def main():
 
     if not csv_files:
         raise FileNotFoundError(
-            f"Nenhum CSV encontrado em: {CSV_DIR}"
+            f"Nenhum arquivo CSV encontrado em: "
+            f"{CSV_DIR}"
         )
 
     print(
-        f"\nCSV encontrados: {len(csv_files)}"
+        f"\nArquivos CSV encontrados: "
+        f"{len(csv_files)}"
     )
 
     # --------------------------------------------------------
-    # Conexão
+    # Conexão com PostgreSQL
     # --------------------------------------------------------
 
     print("\nConectando ao PostgreSQL...")
@@ -278,23 +350,27 @@ def main():
         **DB_CONFIG
     )
 
-    connection.set_client_encoding("UTF8")
+    connection.set_client_encoding(
+        "UTF8"
+    )
 
-    print("Conexão realizada com sucesso.")
+    print(
+        "Conexão realizada com sucesso."
+    )
 
     show_database_info(connection)
 
     # --------------------------------------------------------
-    # Carregamento
+    # Carregamento dos arquivos
     # --------------------------------------------------------
 
-    total_carregado = 0
+    total_linhas_carregadas = 0
 
     try:
 
         for index, csv_file in enumerate(
             csv_files,
-            start=1
+            start=1,
         ):
 
             table_name = csv_file.stem
@@ -305,57 +381,65 @@ def main():
             )
 
             # --------------------------------------------
-            # Conta linhas do CSV
+            # Contagem dos registros de origem
             # --------------------------------------------
 
-            linhas = count_csv_rows(
+            quantidade_linhas = count_csv_rows(
                 csv_file
             )
 
             print(
                 f"    Linhas no CSV: "
-                f"{linhas:,}".replace(",", ".")
+                f"{quantidade_linhas:,}".replace(
+                    ",",
+                    ".",
+                )
             )
 
             try:
 
                 # ----------------------------------------
-                # Carrega tabela
+                # Carregamento da tabela
                 # ----------------------------------------
 
                 load_table(
                     connection,
-                    csv_file
+                    csv_file,
                 )
 
                 # ----------------------------------------
-                # Confirma imediatamente
+                # Confirmação da transação
                 # ----------------------------------------
 
                 connection.commit()
 
-                total_carregado += linhas
+                total_linhas_carregadas += (
+                    quantidade_linhas
+                )
 
                 print(
-                    f"    OK - {table_name} carregada"
+                    f"    OK - tabela "
+                    f"'{table_name}' carregada"
                 )
 
             except Exception:
 
+                # Desfaz somente a operação da tabela
+                # que apresentou erro.
                 connection.rollback()
 
                 print(
                     f"    ERRO - falha ao carregar "
-                    f"{table_name}"
+                    f"'{table_name}'"
                 )
 
                 raise
 
             print()
 
-        # ------------------------------------------------
-        # Resumo
-        # ------------------------------------------------
+        # ----------------------------------------------------
+        # Resumo final
+        # ----------------------------------------------------
 
         print("=" * 60)
         print("CARREGAMENTO CONCLUÍDO")
@@ -368,7 +452,10 @@ def main():
 
         print(
             f"Linhas carregadas: "
-            f"{total_carregado:,}".replace(",", ".")
+            f"{total_linhas_carregadas:,}".replace(
+                ",",
+                ".",
+            )
         )
 
     finally:

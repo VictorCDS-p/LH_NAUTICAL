@@ -6,3 +6,4 @@ SELECT
     MAX(total) AS valor_maximo,
     AVG(total) AS valor_medio
 FROM orders;
+

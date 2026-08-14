@@ -1,1 +1,66 @@
-251864
+============================================================
+DESAFIO LIGHTHOUSE - DADOS E IA
+QUESTÃO 3 - CARREGAMENTO
+============================================================
+
+
+QUESTÃO 3.1 - PYTHON
+------------------------------------------------------------
+
+Arquivo enviado separadamente:
+
+q3_loading.py
+
+O código Python realiza:
+
+- Leitura de todos os arquivos CSV disponíveis no diretório
+  de dados brutos;
+- Validação das variáveis necessárias para conexão;
+- Conexão com o banco PostgreSQL;
+- Verificação da existência das tabelas criadas na Questão 2;
+- Identificação das colunas de cada arquivo CSV;
+- Carregamento dos dados utilizando o comando COPY do PostgreSQL;
+- Manutenção dos dados em seu formato bruto, sem remoção de
+  nulos ou correção de caracteres especiais;
+- Confirmação da transação após o carregamento de cada tabela;
+- Rollback da tabela em caso de erro;
+- Exibição de um resumo do carregamento ao final do processo.
+
+
+QUESTÃO 3.2 - VALIDAÇÃO
+------------------------------------------------------------
+
+Arquivo enviado separadamente:
+
+q3_2_loading.sql
+
+O código SQL soma a quantidade de registros das tabelas:
+
+- customers
+- orders
+- order_items
+- payments
+
+Resultado:
+
+Total de linhas: 251.864
+
+
+OBSERVAÇÕES
+------------------------------------------------------------
+
+- O carregamento foi realizado diretamente a partir dos arquivos
+  CSV para as tabelas correspondentes do PostgreSQL.
+- Não foram realizadas transformações, remoções de nulos ou
+  correções de caracteres nos dados.
+- O comando COPY foi utilizado para realizar o carregamento de
+  forma eficiente.
+- Cada arquivo CSV foi associado à tabela correspondente pelo
+  nome do arquivo.
+- A validação solicitada na questão foi realizada por meio da
+  soma das contagens das quatro tabelas especificadas.
+
+
+============================================================
+FIM DA QUESTÃO 3
+============================================================

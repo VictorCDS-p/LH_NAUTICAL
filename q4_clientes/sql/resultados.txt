@@ -1,43 +1,118 @@
-Q4 - ANÁLISE DE CATEGORIAS DOS TOP 10 CLIENTES
-===============================================
-
-Critério de seleção dos clientes:
-- Mínimo de 13 categorias distintas compradas.
-- Maior ticket médio como critério principal.
-- customer_id em ordem crescente como critério de desempate.
-- Foram selecionados os 10 primeiros clientes após a aplicação
-  desses critérios.
+============================================================
+DESAFIO LIGHTHOUSE - DADOS E IA
+QUESTÃO 4 - ANÁLISE DE CLIENTES
+============================================================
 
 
-METODOLOGIA
------------
+QUESTÃO 4.1 - SQL
+------------------------------------------------------------
 
-Primeiramente, foram calculadas as métricas de cada cliente
-diretamente a partir da tabela orders:
+Arquivo enviado separadamente:
 
-- Faturamento total: SUM(total)
-- Frequência de compras: COUNT de pedidos
-- Ticket médio: faturamento total / frequência de compras
+analise_clientes.sql
 
-Em seguida, para calcular a diversidade de categorias, foi
-percorrida a relação:
+O código SQL realiza:
 
-orders → order_items → product_variants → products → categories
+- Cálculo do faturamento total por cliente;
+- Cálculo da frequência de pedidos por cliente;
+- Cálculo do ticket médio;
+- Cálculo da diversidade de categorias distintas;
+- Aplicação do critério mínimo de 13 categorias;
+- Ordenação dos clientes pelo maior ticket médio;
+- Aplicação de customer_id em ordem crescente como critério
+  de desempate;
+- Seleção dos 10 clientes que atendem aos critérios;
+- Identificação das categorias com maior quantidade total de
+  itens comprados pelos Top 10.
 
-A quantidade de categorias distintas compradas por cliente foi
-calculada utilizando COUNT(DISTINCT category_id).
 
-Após identificar os clientes que compraram em pelo menos 13
-categorias distintas, eles foram ordenados pelo maior ticket
-médio, utilizando customer_id como critério de desempate.
+QUESTÃO 4.2 - EXPLICAÇÃO
+------------------------------------------------------------
 
-Por fim, considerando somente os 10 clientes selecionados, foi
-calculada a quantidade total de unidades compradas por categoria,
-somando o campo quantity dos respectivos order_items.
+
+1. COMO AS CATEGORIAS FORAM IDENTIFICADAS?
+------------------------------------------------------------
+
+A identificação das categorias foi realizada seguindo a cadeia
+de relacionamento entre as tabelas:
+
+orders
+→ order_items
+→ product_variants
+→ products
+→ categories
+
+Primeiramente, orders foi relacionada a order_items por meio de
+order_id.
+
+Em seguida, order_items foi relacionada a product_variants por
+product_variant_id, permitindo identificar o produto associado
+a cada item vendido.
+
+Depois, product_variants foi relacionada a products por
+product_id, permitindo obter a categoria de cada produto por meio
+do campo category_id.
+
+Por fim, products foi relacionada a categories para obter o nome
+da categoria.
+
+Dessa forma, foi possível relacionar cada item comprado ao
+cliente responsável pela compra e à respectiva categoria.
+
+
+2. COMO OS CLIENTES FORAM FILTRADOS?
+------------------------------------------------------------
+
+Para cada cliente foram calculadas as seguintes métricas:
+
+- Faturamento Total = SUM(orders.total)
+- Frequência = COUNT(orders.id)
+- Ticket Médio = Faturamento Total / Frequência
+- Diversidade de Categorias =
+  COUNT(DISTINCT products.category_id)
+
+Após o cálculo da diversidade, foram considerados apenas os
+clientes que compraram produtos pertencentes a pelo menos
+13 categorias distintas.
+
+Entre esses clientes, o ranking foi definido pelo maior ticket
+médio.
+
+Em caso de empate no ticket médio, foi utilizado customer_id
+em ordem crescente, conforme especificado no desafio.
+
+Após a ordenação, foram selecionados os 10 primeiros clientes.
+
+
+3. COMO FOI GARANTIDO QUE A CONTAGEM DE ITENS
+   REFLETISSE APENAS OS TOP 10?
+------------------------------------------------------------
+
+Os 10 clientes foram identificados primeiro na CTE
+"top_10_fieis".
+
+A análise final parte dessa CTE e utiliza:
+
+top_10_fieis
+→ orders
+→ order_items
+→ product_variants
+→ products
+→ categories
+
+Assim, somente os pedidos pertencentes aos 10 clientes
+selecionados são considerados na soma de quantity.
+
+A quantidade total de itens por categoria é então calculada
+por meio de:
+
+SUM(order_items.quantity)
+
+agrupada por category_id e pelo nome da categoria.
 
 
 RESULTADO
----------
+------------------------------------------------------------
 
 Categoria                  Quantidade
 -------------------------------------
@@ -57,11 +132,41 @@ Equipamentos                    255
 Cabos                           254
 
 
+PRINCIPAL RESULTADO
+------------------------------------------------------------
+
+A categoria com maior quantidade de unidades compradas pelos
+Top 10 clientes foi:
+
+Hélices (category_id 8)
+
+Quantidade total: 492 unidades.
+
+
+TOP 5 CATEGORIAS
+------------------------------------------------------------
+
+1. Hélices                - 492 unidades
+2. Coletes Salva-Vidas    - 393 unidades
+3. Eletrônica Náutica     - 392 unidades
+4. Âncoras                - 387 unidades
+5. Iluminação             - 333 unidades
+
+
 CONCLUSÃO
-----------
+------------------------------------------------------------
 
-Hélices (category_id 8) foi a categoria com maior quantidade de
-unidades compradas pelos Top 10 clientes, totalizando 492 unidades.
+Entre os 10 clientes com maior ticket médio que também
+apresentaram diversidade de compra em pelo menos 13 categorias,
+Hélices foi a categoria com maior volume de unidades compradas,
+totalizando 492 unidades.
 
-Entre as cinco categorias com maior volume estão Hélices, Coletes
-Salva-Vidas, Eletrônica Náutica, Âncoras e Iluminação.
+Esse resultado indica que, dentro desse grupo de clientes,
+Hélices apresenta o maior volume de itens adquiridos e pode
+ser um ponto relevante para análises posteriores de
+comportamento de compra e relacionamento entre categorias.
+
+
+============================================================
+FIM DA QUESTÃO 4
+============================================================

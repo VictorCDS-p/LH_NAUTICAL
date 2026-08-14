@@ -1,63 +1,97 @@
-LH NAUTICAL - Q6: PREVISÃO DE DEMANDA
-======================================
+============================================================
+LH NAUTICAL - QUESTÃO 6
+PREVISÃO DE DEMANDA
+============================================================
 
-Produto analisado:
+
+PRODUTO ANALISADO
+------------------------------------------------------------
+
 Bússola de Bordo 702
 
-Modelo:
-Média móvel dos últimos 3 meses
+
+CONFIGURAÇÃO DO MODELO
+------------------------------------------------------------
+
+Modelo utilizado:
+Média móvel dos últimos 3 meses.
 
 Período de treinamento:
-Até 31/12/2025
+Até 31/12/2025.
 
 Período de teste:
-01/01/2026 a 31/03/2026
+01/01/2026 a 31/03/2026.
+
+Frequência da previsão:
+Mensal.
 
 
-RESULTADOS
-----------
+RESULTADOS DA PREVISÃO
+------------------------------------------------------------
 
-Mês       Real    Previsão
-01/2026    79      38,67
-02/2026    68      53,67
-03/2026    60      56,33
+Mês          Real       Previsão
+01/2026       79          38,67
+02/2026       68          53,67
+03/2026       60          56,33
 
 
 MÉTRICAS
---------
+------------------------------------------------------------
 
-MAE: 19,44 unidades
+MAE:
+19,44 unidades
 
-Previsão total no 1º trimestre: 149 unidades
-Vendas reais no 1º trimestre: 207 unidades
+Previsão total no 1º trimestre de 2026:
+149 unidades
+
+Vendas reais no 1º trimestre de 2026:
+207 unidades
 
 Diferença entre previsão e realizado:
 58 unidades abaixo do realizado.
 
 
 ANÁLISE
--------
+------------------------------------------------------------
 
-A média móvel de 3 meses apresentou uma previsão total de
-149 unidades para o primeiro trimestre de 2026, enquanto o
-volume realizado foi de 207 unidades.
+A média móvel dos últimos três meses apresentou uma previsão
+total de 149 unidades para o primeiro trimestre de 2026,
+enquanto o volume efetivamente realizado foi de 207 unidades.
 
-O modelo subestimou a demanda em 58 unidades. O principal
-impacto ocorreu em janeiro de 2026, quando foram vendidas
-79 unidades contra uma previsão de 38,67 unidades.
+O modelo subestimou a demanda em 58 unidades no trimestre.
 
-Nos meses seguintes, a previsão se aproximou do realizado,
-com 53,67 unidades previstas contra 68 realizadas em fevereiro
-e 56,33 previstas contra 60 realizadas em março.
+A maior diferença ocorreu em janeiro de 2026, quando foram
+vendidas 79 unidades, enquanto a previsão foi de 38,67 unidades.
 
-O MAE de 19,44 unidades indica que, em média, a previsão
-apresentou um erro absoluto de aproximadamente 19 unidades
-por mês.
+Em fevereiro, foram realizadas 68 vendas contra uma previsão
+de 53,67 unidades.
 
-Conclusão:
-A média móvel de 3 meses funciona como um baseline simples
-para previsão de demanda, mas apresentou dificuldade para
-capturar aumentos repentinos nas vendas. Para utilização
-operacional, seria interessante comparar esse baseline com
-outros modelos de previsão e avaliar também sazonalidade e
-tendências históricas.
+Em março, foram realizadas 60 vendas contra uma previsão de
+56,33 unidades.
+
+
+INTERPRETAÇÃO DO MAE
+------------------------------------------------------------
+
+O MAE de 19,44 unidades indica que, em média, as previsões
+apresentaram um erro absoluto de aproximadamente 19 unidades
+por mês durante o período de teste.
+
+
+CONCLUSÃO
+------------------------------------------------------------
+
+O baseline de média móvel de três meses é adequado como uma
+primeira referência simples para previsão de demanda, pois é
+fácil de implementar, interpretar e reproduzir.
+
+Entretanto, para este produto, o modelo apresentou tendência
+de subestimar aumentos recentes na demanda. Portanto, apesar
+de ser útil como baseline, não seria recomendado utilizá-lo
+isoladamente como modelo definitivo para planejamento de
+estoque.
+
+Uma limitação importante é que a média móvel considera apenas
+os últimos três meses e, por isso, possui dificuldade para
+capturar mudanças repentinas de demanda, tendências de longo
+prazo ou efeitos de sazonalidade.

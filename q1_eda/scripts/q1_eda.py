@@ -4,13 +4,23 @@ from statistics import mean
 from datetime import datetime
 
 
+# ============================================================
+# CONFIGURAÇÃO
+# ============================================================
+
 # Caminho da raiz do projeto
 ROOT = Path(__file__).resolve().parents[2]
+
 # Caminho dos dados brutos
 ORDERS_FILE = ROOT / "data" / "raw" / "orders.csv"
 
 
 def main():
+
+    # ========================================================
+    # LEITURA DOS DADOS
+    # ========================================================
+
     with open(
         ORDERS_FILE,
         "r",
@@ -21,17 +31,17 @@ def main():
         reader = csv.DictReader(arquivo)
         rows = list(reader)
 
-    # ==========================================================
-    # PARTE 1 - VISÃO GERAL DA TABELA
-    # ==========================================================
+    # ========================================================
+    # PARTE 1 — VISÃO GERAL DA TABELA
+    # ========================================================
 
-    # Quantidade de linhas
+    # Quantidade total de linhas
     total_linhas = len(rows)
 
-    # Quantidade de colunas
+    # Quantidade total de colunas
     total_colunas = len(reader.fieldnames)
 
-    # Datas
+    # Datas de criação
     datas = [
         row["created_at"]
         for row in rows
@@ -41,9 +51,9 @@ def main():
     data_minima = min(datas)
     data_maxima = max(datas)
 
-    # ==========================================================
-    # PARTE 2 - ANÁLISE DA COLUNA TOTAL
-    # ==========================================================
+    # ========================================================
+    # PARTE 2 — ANÁLISE DA COLUNA TOTAL
+    # ========================================================
 
     totais = [
         float(row["total"])
@@ -55,26 +65,27 @@ def main():
     valor_maximo = max(totais)
     valor_medio = mean(totais)
 
-    # ==========================================================
-    # PARTE 3 - QUALIDADE DOS DADOS
-    # ==========================================================
+    # ========================================================
+    # PARTE 3 — QUALIDADE DOS DADOS
+    # ========================================================
 
-    # Quantidade de valores nulos/vazios
+    # Quantidade de valores nulos/vazios em created_at
     nulos_created_at = sum(
         1
         for row in rows
         if not row["created_at"]
     )
 
+    # Quantidade de valores nulos/vazios em total
     nulos_total = sum(
         1
         for row in rows
         if not row["total"]
     )
 
-    # ==========================================================
+    # ========================================================
     # VERIFICAÇÃO DE DATAS FUTURAS
-    # ==========================================================
+    # ========================================================
 
     agora = datetime.now()
 
@@ -90,12 +101,12 @@ def main():
 
     quantidade_datas_futuras = len(datas_futuras)
 
-    # ==========================================================
+    # ========================================================
     # RESULTADOS
-    # ==========================================================
+    # ========================================================
 
     print("=" * 60)
-    print("QUESTÃO 1 - EDA")
+    print("QUESTÃO 1 — EDA")
     print("=" * 60)
 
     print("\n[PARTE 1] VISÃO GERAL")
@@ -104,12 +115,12 @@ def main():
     print(f"created_at mínimo: {data_minima}")
     print(f"created_at máximo: {data_maxima}")
 
-    print("\n[PARTE 2] TOTAL")
+    print("\n[PARTE 2] ANÁLISE DE TOTAL")
     print(f"Valor mínimo: {valor_minimo:.2f}")
     print(f"Valor máximo: {valor_maximo:.2f}")
     print(f"Valor médio: {valor_medio:.2f}")
 
-    print("\n[PARTE 3] QUALIDADE")
+    print("\n[PARTE 3] QUALIDADE DOS DADOS")
     print(f"Nulos/vazios em created_at: {nulos_created_at}")
     print(f"Nulos/vazios em total: {nulos_total}")
 

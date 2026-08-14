@@ -1,42 +1,121 @@
-Q5 - MÉDIA DE VENDAS POR DIA DA SEMANA
-======================================
+============================================================
+DESAFIO LIGHTHOUSE - DADOS E IA
+QUESTÃO 5 - DIMENSÃO DE CALENDÁRIO
+============================================================
 
-ESCOPO
-------
 
-A análise considera exclusivamente as vendas realizadas pelas
+QUESTÃO 5.1 - SQL
+------------------------------------------------------------
+
+Arquivo enviado separadamente:
+
+calendario.sql
+
+O código SQL realiza:
+
+- Criação de uma dimensão de calendário utilizando
+  generate_series;
+- Definição do período entre a menor e a maior data de venda
+  das lojas físicas;
+- Identificação do número do dia da semana utilizando ISO;
+- Tradução dos dias da semana para o português;
+- Agregação das vendas por dia;
+- LEFT JOIN entre o calendário e as vendas diárias;
+- Substituição de datas sem vendas por R$ 0,00 utilizando
+  COALESCE;
+- Cálculo da média de vendas para cada dia da semana.
+
+
+ESCOPO DA ANÁLISE
+------------------------------------------------------------
+
+Foram consideradas exclusivamente as vendas realizadas pelas
 lojas físicas, identificadas por:
 
 channel = 'pos'
 
 
 METODOLOGIA
------------
+------------------------------------------------------------
 
-Foi utilizada uma dimensão de calendário porque a tabela orders
-contém apenas as datas em que houve registros de vendas.
+A análise foi construída em três etapas principais.
 
-Caso o agrupamento fosse realizado diretamente sobre orders,
-datas sem nenhuma venda não apareceriam no cálculo. Isso poderia
-superestimar a média de determinados dias da semana, pois somente
-os dias com vendas seriam considerados.
+1. DIMENSÃO DE CALENDÁRIO
 
-Para evitar essa distorção, foi criado um calendário contendo
-todas as datas entre a primeira e a última venda das lojas físicas.
+Foi criado um calendário contendo todas as datas entre a menor
+e a maior data de venda das lojas físicas.
 
-As vendas foram inicialmente agregadas por data. Em seguida,
-essa informação foi relacionada ao calendário utilizando LEFT
-JOIN.
+Cada data recebeu seu respectivo dia da semana, utilizando a
+numeração ISO:
 
-Quando não existia venda em determinada data, o valor foi
-considerado como zero por meio de COALESCE.
+1 = Segunda-feira
+2 = Terça-feira
+3 = Quarta-feira
+4 = Quinta-feira
+5 = Sexta-feira
+6 = Sábado
+7 = Domingo
 
-Dessa forma, todos os dias do período participam do cálculo,
-inclusive aqueles em que não houve nenhuma venda.
+
+2. VENDAS DIÁRIAS
+
+As vendas das lojas físicas foram agregadas por data, utilizando
+a soma da coluna total da tabela orders.
+
+Dessa forma, cada data com registros de venda passou a possuir
+um único valor correspondente ao total vendido naquele dia.
+
+
+3. CALENDÁRIO + VENDAS
+
+O calendário foi relacionado às vendas utilizando LEFT JOIN.
+
+Quando uma data do calendário não possuía nenhum registro de
+venda, o LEFT JOIN manteve a data no resultado e o valor da
+venda foi substituído por zero utilizando COALESCE.
+
+Assim, dias sem vendas também participaram do cálculo da média.
+
+
+QUESTÃO 5.2 - EXPLICAÇÃO
+------------------------------------------------------------
+
+
+POR QUE UTILIZAR UMA TABELA DE DATAS?
+------------------------------------------------------------
+
+A tabela orders registra somente as datas em que existem
+pedidos.
+
+Portanto, se a análise fosse realizada diretamente sobre orders,
+as datas em que nenhuma venda foi registrada não apareceriam no
+resultado.
+
+A utilização de uma dimensão de calendário permite representar
+explicitamente todas as datas do período analisado, incluindo
+aquelas sem vendas.
+
+
+O QUE ACONTECERIA SEM O CALENDÁRIO?
+------------------------------------------------------------
+
+Sem o calendário, os dias sem vendas seriam simplesmente
+ignorados pelo cálculo da média.
+
+Por exemplo, se determinado dia da semana tivesse 10 ocorrências
+no período, mas em 4 delas não houvesse nenhuma venda, uma média
+calculada diretamente sobre orders consideraria somente as
+6 datas que possuem registros.
+
+Isso faria com que a média fosse calculada apenas sobre os dias
+com vendas, podendo produzir um valor artificialmente elevado.
+
+Ao utilizar o calendário e atribuir R$ 0,00 aos dias sem vendas,
+todas as ocorrências do dia da semana são consideradas no cálculo.
 
 
 RESULTADO
----------
+------------------------------------------------------------
 
 Dia da semana       Média de vendas
 ------------------------------------
@@ -49,16 +128,31 @@ Sábado              R$ 164.858,27
 Domingo             R$ 157.616,13
 
 
+PRINCIPAIS RESULTADOS
+------------------------------------------------------------
+
+Maior média de vendas:
+
+Quarta-feira — R$ 173.605,44
+
+
+Menor média de vendas:
+
+Quinta-feira — R$ 157.154,32
+
+
 CONCLUSÃO
-----------
+------------------------------------------------------------
 
-Quarta-feira apresentou a maior média de vendas, com
-aproximadamente R$ 173.605,44 por dia.
+Considerando todos os dias do período analisado, inclusive os
+dias sem vendas, a quarta-feira apresentou a maior média de
+vendas, enquanto a quinta-feira apresentou a menor.
 
-Quinta-feira apresentou a menor média, com aproximadamente
-R$ 157.154,32 por dia.
+A utilização da dimensão de calendário evita que dias sem vendas
+sejam excluídos do cálculo e, consequentemente, evita a
+superestimação da média de determinados dias da semana.
 
-A utilização do calendário garante que dias sem vendas também
-sejam considerados como zero no cálculo, evitando que a média
-seja artificialmente elevada pela ausência desses dias na tabela
-de vendas.
+
+============================================================
+FIM DA QUESTÃO 5
+============================================================

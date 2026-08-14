@@ -1,39 +1,125 @@
-Q7 - SISTEMA DE RECOMENDAÇÃO
+============================================================
+LH NAUTICAL - QUESTÃO 7
+SISTEMA DE RECOMENDAÇÃO
+============================================================
 
-Produto de referência: Motor de Popa 1949
 
-Q7.1 - Construção da matriz e similaridade
+PRODUTO DE REFERÊNCIA
+------------------------------------------------------------
 
-Foi construída uma matriz de interação Usuário × Produto com 2.000 clientes e 500 produtos.
+Motor de Popa 1949
 
-Cada linha representa um cliente (id_cliente) e cada coluna representa um produto (id_produto). O valor da célula é 1 quando o cliente comprou aquele produto pelo menos uma vez e 0 quando não houve compra. A quantidade comprada foi desconsiderada, conforme solicitado.
+Q7.1 - MATRIZ USUÁRIO × PRODUTO
+------------------------------------------------------------
 
-Foram identificadas 135.508 interações únicas entre clientes e produtos.
+Foi construída uma matriz de interação Usuário × Produto
+contendo:
 
-A partir dessa matriz, foi calculada a Similaridade de Cosseno entre os vetores de cada produto. Dessa forma, a similaridade entre dois produtos representa o quanto os mesmos clientes tendem a comprar ambos.
+- 2.000 clientes;
+- 500 produtos;
+- 135.508 interações únicas entre clientes e produtos.
 
-Q7.2 - Ranking dos produtos similares
+Cada linha representa um cliente (id_cliente) e cada coluna
+representa um produto (id_produto).
 
-Considerando o "Motor de Popa 1949" como produto de referência, os 5 produtos mais similares foram:
+O valor da célula é:
 
-1. Motor de Popa 5331 — Similaridade: 0.2566
-2. Cabo Náutico 2105 — Similaridade: 0.2562
-3. Vela Mestra 1913 — Similaridade: 0.2558
-4. Cabo Náutico 9048 — Similaridade: 0.2393
-5. GPS Plotter 6249 — Similaridade: 0.2377
+- 1: o cliente comprou o produto pelo menos uma vez;
+- 0: o cliente não comprou o produto.
 
-O produto com maior similaridade ao "Motor de Popa 1949" é o "Motor de Popa 5331", com similaridade de 0.2566.
+A quantidade comprada foi desconsiderada, conforme solicitado
+no enunciado.
 
-Q7.3 - Explicação
+Para evitar que compras repetidas gerassem valores superiores
+a 1, as interações foram previamente deduplicadas e a matriz
+foi transformada em uma representação binária.
 
-1. Como a matriz foi construída?
 
-A matriz foi construída a partir das compras realizadas pelos clientes. Cada cliente ocupa uma linha e cada produto ocupa uma coluna. Quando um cliente comprou determinado produto pelo menos uma vez, a célula recebe valor 1. Caso contrário, recebe 0. Compras repetidas do mesmo produto pelo mesmo cliente continuam representadas apenas pelo valor 1.
+Q7.1 - SIMILARIDADE DE COSSENO
+------------------------------------------------------------
 
-2. O que significa a similaridade de cosseno nesse contexto?
+A similaridade foi calculada entre os vetores dos produtos.
 
-A similaridade de cosseno mede a proximidade entre os padrões de compra de dois produtos. Um valor maior indica que os produtos são comprados por conjuntos de clientes mais semelhantes. Assim, para o "Motor de Popa 1949", o "Motor de Popa 5331" foi o produto que apresentou o padrão de clientes mais semelhante entre os produtos avaliados.
+Cada produto é representado pelo conjunto de clientes que
+realizaram pelo menos uma compra daquele produto.
 
-3. Qual é uma limitação desse método?
+A Similaridade de Cosseno mede a proximidade entre esses
+vetores de clientes. Dessa forma, quanto maior o valor da
+similaridade, mais semelhantes são os padrões de clientes
+que compraram os dois produtos.
 
-Uma limitação é a dependência do histórico de compras. Produtos novos ou com poucas compras podem não possuir informações suficientes para gerar recomendações confiáveis. Além disso, o método considera apenas a presença ou ausência da compra, não levando em conta quantidade comprada, valor da compra, recência ou contexto da compra.
+
+Q7.2 - RANKING DOS PRODUTOS SIMILARES
+------------------------------------------------------------
+
+Considerando o "Motor de Popa 1949" como produto de referência,
+os cinco produtos mais similares foram:
+
+1. Motor de Popa 5331
+   Similaridade: 0,2566
+
+2. Cabo Náutico 2105
+   Similaridade: 0,2562
+
+3. Vela Mestra 1913
+   Similaridade: 0,2558
+
+4. Cabo Náutico 9048
+   Similaridade: 0,2393
+
+5. GPS Plotter 6249
+   Similaridade: 0,2377
+
+
+Q7.2 - MAIOR SIMILARIDADE
+------------------------------------------------------------
+
+O produto com maior similaridade ao "Motor de Popa 1949" foi:
+
+Motor de Popa 5331
+
+Similaridade:
+0,2566
+
+
+Q7.3 - EXPLICAÇÃO
+------------------------------------------------------------
+
+Como a matriz foi construída?
+
+A matriz foi construída a partir das compras realizadas pelos
+clientes. Cada cliente representa uma linha e cada produto
+representa uma coluna.
+
+Quando um cliente comprou determinado produto pelo menos uma
+vez, a respectiva célula recebe o valor 1. Caso contrário,
+recebe o valor 0.
+
+Assim, compras repetidas do mesmo produto pelo mesmo cliente
+não aumentam o valor da célula, mantendo a representação de
+presença ou ausência solicitada no desafio.
+
+
+Como a Similaridade de Cosseno funciona nesse contexto?
+
+A Similaridade de Cosseno compara os vetores de clientes
+associados a dois produtos.
+
+Nesse contexto, produtos apresentam maior similaridade quando
+são comprados por conjuntos de clientes mais semelhantes.
+
+Para o "Motor de Popa 1949", o "Motor de Popa 5331" apresentou
+o maior valor de similaridade entre os produtos analisados,
+com score de 0,2566.
+
+
+Qual é uma limitação desse método?
+
+Uma limitação é a dependência do histórico de compras. Produtos
+novos ou com poucas interações podem não possuir informações
+suficientes para gerar recomendações confiáveis.
+
+Além disso, como a matriz é binária, o método considera apenas
+a presença ou ausência da compra. Portanto, não considera
+quantidade comprada, valor da compra, recência ou contexto da
+transação.

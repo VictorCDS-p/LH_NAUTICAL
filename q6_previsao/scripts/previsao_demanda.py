@@ -7,8 +7,13 @@ from dotenv import load_dotenv
 
 
 # ============================================================
-# CONFIGURAÇÃO
+# LH NAUTICAL - QUESTÃO 6
+# PREVISÃO DE DEMANDA
 # ============================================================
+
+# ------------------------------------------------------------
+# CONFIGURAÇÃO
+# ------------------------------------------------------------
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 ENV_FILE = ROOT / ".env"
@@ -19,31 +24,46 @@ TRAIN_END = "2025-12-31"
 TEST_START = "2026-01-01"
 TEST_END = "2026-03-31"
 
+WINDOW_SIZE = 3
 
-# ============================================================
-# VARIÁVEIS DE AMBIENTE
-# ============================================================
+
+# ------------------------------------------------------------
+# CONFIGURAÇÃO DO AMBIENTE
+# ------------------------------------------------------------
 
 if not ENV_FILE.exists():
     raise FileNotFoundError(
         f"Arquivo .env não encontrado: {ENV_FILE}"
     )
 
-# override=True garante que o .env do projeto
-# sobrescreva variáveis de ambiente do Windows.
-load_dotenv(ENV_FILE, override=True)
+load_dotenv(
+    ENV_FILE,
+    override=True
+)
 
+
+# ------------------------------------------------------------
+# CONFIGURAÇÃO DO POSTGRESQL
+# ------------------------------------------------------------
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
     "port": os.getenv("DB_PORT"),
     "database": os.getenv("DB_NAME"),
     "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD")
+    "password": os.getenv("DB_PASSWORD"),
 }
 
 
+# ============================================================
+# VALIDAÇÃO DA CONFIGURAÇÃO
+# ============================================================
+
 def validate_config():
+    """
+    Verifica se todas as variáveis necessárias para conexão
+    com o PostgreSQL estão configuradas.
+    """
 
     missing = [
         key
@@ -59,15 +79,37 @@ def validate_config():
 
 
 # ============================================================
-# EXTRAÇÃO DOS DADOS
+# EXTRAÇÃO E UNIFICAÇÃO DOS DADOS
 # ============================================================
 
 def load_sales_data(connection):
+    """
+    Extrai e unifica os dados necessários para a previsão.
+
+    Relacionamentos utilizados:
+
+    products
+        ↓
+    product_variants
+        ↓
+    order_items
+        ↓
+    orders
+
+    O resultado contém a quantidade total de unidades
+    vendidas por mês para o produto analisado.
+    """
 
     query = """
         SELECT
-            DATE_TRUNC('month', o.placed_at)::date AS mes,
-            SUM(oi.quantity) AS unidades_vendidas
+            DATE_TRUNC(
+                'month',
+                o.placed_at
+            )::date AS mes,
+
+            SUM(
+                oi.quantity
+            ) AS unidades_vendidas
 
         FROM orders AS o
 
@@ -82,8 +124,14 @@ def load_sales_data(connection):
 
         WHERE p.name = %s
 
-        GROUP BY 1
-        ORDER BY 1;
+        GROUP BY
+            DATE_TRUNC(
+                'month',
+                o.placed_at
+            )::date
+
+        ORDER BY
+            mes;
     """
 
     df = pd.read_sql_query(
@@ -94,10 +142,13 @@ def load_sales_data(connection):
 
     if df.empty:
         raise ValueError(
-            f"Nenhuma venda encontrada para: {PRODUCT_NAME}"
+            f"Nenhuma venda encontrada para o produto: "
+            f"{PRODUCT_NAME}"
         )
 
-    df["mes"] = pd.to_datetime(df["mes"])
+    df["mes"] = pd.to_datetime(
+        df["mes"]
+    )
 
     df["unidades_vendidas"] = (
         df["unidades_vendidas"]
@@ -112,6 +163,12 @@ def load_sales_data(connection):
 # ============================================================
 
 def prepare_dataset(df):
+    """
+    Garante que todos os meses existentes entre o primeiro
+    e o último registro estejam presentes na série.
+
+    Meses sem vendas são considerados como zero.
+    """
 
     meses = pd.date_range(
         start=df["mes"].min(),
@@ -120,8 +177,12 @@ def prepare_dataset(df):
     )
 
     df = (
-        df.set_index("mes")
-        .reindex(meses, fill_value=0)
+        df
+        .set_index("mes")
+        .reindex(
+            meses,
+            fill_value=0
+        )
         .rename_axis("mes")
         .reset_index()
     )
@@ -136,14 +197,35 @@ def prepare_dataset(df):
 
 
 # ============================================================
-# PREVISÃO — MÉDIA MÓVEL DE 3 MESES
+# PREVISÃO - MÉDIA MÓVEL DE 3 MESES
 # ============================================================
 
 def generate_forecasts(df):
+    """
+    Gera previsões mensais utilizando a média das vendas
+    dos três meses anteriores à previsão.
 
-    train_end = pd.Timestamp(TRAIN_END)
-    test_start = pd.Timestamp(TEST_START)
-    test_end = pd.Timestamp(TEST_END)
+    O valor real do mês previsto somente é adicionado ao
+    histórico depois que sua previsão foi calculada.
+    Dessa forma, o valor do próprio mês não influencia
+    sua previsão.
+    """
+
+    train_end = pd.Timestamp(
+        TRAIN_END
+    )
+
+    test_start = pd.Timestamp(
+        TEST_START
+    )
+
+    test_end = pd.Timestamp(
+        TEST_END
+    )
+
+    # --------------------------------------------------------
+    # Separação entre treino e teste
+    # --------------------------------------------------------
 
     train = df[
         df["mes"] <= train_end
@@ -154,9 +236,10 @@ def generate_forecasts(df):
         & (df["mes"] <= test_end)
     ].copy()
 
-    if len(train) < 3:
+    if len(train) < WINDOW_SIZE:
         raise ValueError(
-            "O período de treinamento possui menos de 3 meses."
+            "O período de treinamento possui menos de "
+            f"{WINDOW_SIZE} meses."
         )
 
     if test.empty:
@@ -164,18 +247,35 @@ def generate_forecasts(df):
             "Nenhum dado encontrado no período de teste."
         )
 
-    history = train["unidades_vendidas"].tolist()
+    # --------------------------------------------------------
+    # Histórico inicial
+    # --------------------------------------------------------
+
+    history = (
+        train["unidades_vendidas"]
+        .tolist()
+    )
 
     forecasts = []
 
+    # --------------------------------------------------------
+    # Previsão mês a mês
+    # --------------------------------------------------------
+
     for _, row in test.iterrows():
 
-        previsao = sum(history[-3:]) / 3
+        # Média dos três últimos meses disponíveis.
+        previsao = (
+            sum(history[-WINDOW_SIZE:])
+            / WINDOW_SIZE
+        )
 
-        forecasts.append(previsao)
+        forecasts.append(
+            previsao
+        )
 
-        # O valor real só entra no histórico
-        # depois que a previsão foi realizada.
+        # O valor real só é incorporado ao histórico
+        # depois que a previsão do mês foi realizada.
         history.append(
             row["unidades_vendidas"]
         )
@@ -186,10 +286,16 @@ def generate_forecasts(df):
 
 
 # ============================================================
-# AVALIAÇÃO
+# MÉTRICA DE AVALIAÇÃO
 # ============================================================
 
 def calculate_mae(test):
+    """
+    Calcula o Mean Absolute Error (MAE).
+
+    MAE = média do erro absoluto entre o valor real
+    e o valor previsto.
+    """
 
     return (
         test["unidades_vendidas"]
@@ -198,24 +304,35 @@ def calculate_mae(test):
 
 
 # ============================================================
-# MAIN
+# EXECUÇÃO PRINCIPAL
 # ============================================================
 
 def main():
 
     print("=" * 60)
-    print("LH NAUTICAL - PREVISÃO DE DEMANDA")
+    print("LH NAUTICAL - QUESTÃO 6")
+    print("PREVISÃO DE DEMANDA")
     print("=" * 60)
 
     print(f"\nProduto: {PRODUCT_NAME}")
-    print("Modelo: Média móvel dos últimos 3 meses")
-    print("Treino: até 31/12/2025")
-    print("Teste: 1º trimestre de 2026")
+    print(
+        "Modelo: Média móvel dos últimos "
+        f"{WINDOW_SIZE} meses"
+    )
+    print(f"Treino: até {TRAIN_END}")
+    print(
+        f"Teste: {TEST_START} a {TEST_END}"
+    )
+
+    # --------------------------------------------------------
+    # Validação da configuração
+    # --------------------------------------------------------
 
     validate_config()
 
-    print(f"\nArquivo .env:")
-    print(ENV_FILE)
+    # --------------------------------------------------------
+    # Conexão com PostgreSQL
+    # --------------------------------------------------------
 
     print("\nConectando ao PostgreSQL...")
 
@@ -223,21 +340,44 @@ def main():
         **DB_CONFIG
     )
 
-    print("Conexão realizada com sucesso.")
+    print(
+        "Conexão realizada com sucesso."
+    )
 
     try:
+
+        # ----------------------------------------------------
+        # Extração dos dados
+        # ----------------------------------------------------
 
         df = load_sales_data(
             connection
         )
 
+        print(
+            f"\nRegistros mensais extraídos: "
+            f"{len(df)}"
+        )
+
+        # ----------------------------------------------------
+        # Preparação da série temporal
+        # ----------------------------------------------------
+
         df = prepare_dataset(
             df
         )
 
+        # ----------------------------------------------------
+        # Geração das previsões
+        # ----------------------------------------------------
+
         test = generate_forecasts(
             df
         )
+
+        # ----------------------------------------------------
+        # Avaliação do modelo
+        # ----------------------------------------------------
 
         mae = calculate_mae(
             test
@@ -251,19 +391,41 @@ def main():
         print("RESULTADOS")
         print("=" * 60)
 
+        print(
+            f"\n{'Mês':<10}"
+            f"{'Real':>10}"
+            f"{'Previsão':>15}"
+            f"{'Arredondada':>15}"
+        )
+
+        print("-" * 50)
+
         for _, row in test.iterrows():
 
-            mes = row["mes"].strftime("%m/%Y")
-            real = int(row["unidades_vendidas"])
+            mes = row["mes"].strftime(
+                "%m/%Y"
+            )
+
+            real = int(
+                row["unidades_vendidas"]
+            )
+
             previsao = row["previsao"]
-            arredondada = round(previsao)
+
+            arredondada = round(
+                previsao
+            )
 
             print(
-                f"{mes} | "
-                f"Real: {real:>3} | "
-                f"Previsão: {previsao:>6.2f} | "
-                f"Arredondada: {arredondada:>3}"
+                f"{mes:<10}"
+                f"{real:>10}"
+                f"{previsao:>15.2f}"
+                f"{arredondada:>15}"
             )
+
+        # ----------------------------------------------------
+        # Totais
+        # ----------------------------------------------------
 
         previsao_total = round(
             test["previsao"].sum()
@@ -273,21 +435,31 @@ def main():
             test["unidades_vendidas"].sum()
         )
 
-        print(f"\nMAE: {mae:.2f} unidades")
+        diferenca = (
+            vendas_reais
+            - previsao_total
+        )
+
+        print("\n" + "-" * 50)
 
         print(
-            f"Previsão total do 1º trimestre: "
+            f"MAE: "
+            f"{mae:.2f} unidades"
+        )
+
+        print(
+            "Previsão total do 1º trimestre: "
             f"{previsao_total} unidades"
         )
 
         print(
-            f"Vendas reais no 1º trimestre: "
+            "Vendas reais no 1º trimestre: "
             f"{vendas_reais} unidades"
         )
 
         print(
-            f"Diferença entre previsão e realizado: "
-            f"{vendas_reais - previsao_total} unidades"
+            "Diferença entre previsão e realizado: "
+            f"{diferenca} unidades"
         )
 
     finally:
@@ -298,6 +470,10 @@ def main():
             "\nConexão com PostgreSQL encerrada."
         )
 
+
+# ============================================================
+# EXECUÇÃO
+# ============================================================
 
 if __name__ == "__main__":
     main()
